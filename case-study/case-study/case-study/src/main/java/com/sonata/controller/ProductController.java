@@ -8,14 +8,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.sonata.dto.BasketProductDTO;
+import com.sonata.dto.BasketRequestDTO;
 import com.sonata.dto.ProductDescription;
 import com.sonata.dto.ProductList;
-import com.sonata.model.Author;
+import com.sonata.dto.UserDTO;
 import com.sonata.model.Basket;
 import com.sonata.model.Brand;
 import com.sonata.model.Inventory;
-import com.sonata.model.Person;
+
 import com.sonata.model.Product;
+import com.sonata.model.User;
+import com.sonata.repo.ProductRepository;
 import com.sonata.service.ProductService;
 
 @RestController
@@ -133,11 +136,80 @@ public class ProductController {
 //    }
     
     //12
-    @GetMapping("/User/{userId}")
-    public ResponseEntity<List<BasketProductDTO>> getBasketProductsByUserId(@PathVariable Long userId) {
-        List<BasketProductDTO> basketProducts = productService.getBasketProductsByUserId(userId);
-        return new ResponseEntity<>(basketProducts, HttpStatus.OK);
+//    @GetMapping("/User/{userId}")
+//    public ResponseEntity<List<BasketProductDTO>> getBasketProductsByUserId(@PathVariable Long userId) {
+//        List<BasketProductDTO> basketProducts = productService.getBasketProductsByUserId(userId);
+//        return new ResponseEntity<>(basketProducts, HttpStatus.OK);
+//    }
+//    
+    //13
+    @GetMapping("user/{userId}")
+    public ResponseEntity<UserDTO> getUserDetails(@PathVariable Long userId) {
+        UserDTO userDTO = productService.getUserDetails(userId);
+
+        
+
+        return new ResponseEntity<>(userDTO, HttpStatus.OK);
     }
+  //14 To delete the user by id
+    @DeleteMapping("/deleteusers/{userId}")
+    public void deleteUserById(@PathVariable long userId) {
+        productService.deleteUserById(userId);
+    }
+    
+    //15 To add a new User
+    @PostMapping("/users")
+    public User addUser(@RequestBody User user) {
+        return productService.addUser(user);
+    }
+    
+    //16 To get All the users
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return productService.getAllUsers();
+    }
+
+
+    
+    //17 To update the user details
+	@PutMapping("/users/{userId}")
+	public User updateUser(@PathVariable long userId, @RequestBody User updatedUser) {
+		
+	
+    User updatedUser1 = productService.updateUser(userId, updatedUser);
+
+    if (updatedUser1 != null) {
+        return updatedUser1;
+    }
+	return updatedUser1;
+    }
+
+
+	//18 adding items to the basket
+	
+	@PostMapping("/add")
+	public Basket addItemToBasket(@RequestBody BasketRequestDTO basketRequest) {
+	    return productService.addItemToBasket(basketRequest);
+	}
+	//19 to remove item from the basket
+	@DeleteMapping("/removeitem/{basketId}")
+    public void removeItemFromBasket(@PathVariable Long basketId) {
+        productService.removeItemFromBasket(basketId);
+    }
+	
+	//20 to modify the quantity in the basket
+	@PutMapping("modifyquantity/{basketId}")
+    public void modifyItemQuantity(
+            @PathVariable Long basketId,
+            @RequestParam int newQuantity
+    ) {
+        productService.modifyItemQuantity(basketId, newQuantity);
+    }
+	
+}
+
+
+
     
     
     
@@ -158,23 +230,9 @@ public class ProductController {
 //    }
     
     
-    @GetMapping("/authors/{authorId}")
-    public ResponseEntity<Author> getAuthorWithBooks(@PathVariable Long authorId) {
-        Author author = productService.getAuthorWithBooks(authorId);
-
-        
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
     
-    @GetMapping("/people/{personId}")
-    public ResponseEntity<Person> getPersonById(@PathVariable Long personId) {
-        Person person = productService.getPersonById(personId);
-
-        
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
     
 
     
 
-}
+

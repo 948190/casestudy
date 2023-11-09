@@ -20,16 +20,30 @@ public class Basket {
     
     private double price;
     private int quantity;
-    private Long userId;
+
     
     @ManyToOne
     @JoinColumn(name = "basket_product_id") 
     private Product product;
     
+    @ManyToOne
+    @JoinColumn(name = "cus_user_id") 
+    private User user;
+    
    
     public Basket() {
     	
     }
+
+
+	public User getUser() {
+		return user;
+	}
+
+
+	public void setUser(User user) {
+		this.user = user;
+	}
 
 
 	public Long getBasketId() {
@@ -62,14 +76,7 @@ public class Basket {
 	}
 
 
-	public Long getUserId() {
-		return userId;
-	}
-
-
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
+	
 
 
 	public Product getProduct() {

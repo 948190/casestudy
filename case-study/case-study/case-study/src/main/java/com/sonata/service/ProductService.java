@@ -14,23 +14,23 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.sonata.dto.BasketProductDTO;
-import com.sonata.dto.ProductDescription;
-import com.sonata.dto.ProductList;
-import com.sonata.model.Author;
+import com.sonata.model.Audit;
 import com.sonata.model.Basket;
 import com.sonata.model.Brand;
 import com.sonata.model.Category;
 import com.sonata.model.Inventory;
-import com.sonata.model.Person;
+
 import com.sonata.model.Product;
-import com.sonata.repo.AuthorRepository;
+import com.sonata.model.User;
+import com.sonata.dto.*;
+
 import com.sonata.repo.BasketRepository;
 import com.sonata.repo.BrandRepository;
 import com.sonata.repo.CategoryRepository;
 import com.sonata.repo.InventoryRepository;
-import com.sonata.repo.PersonRepository;
+
 import com.sonata.repo.ProductRepository;
+import com.sonata.repo.UserRepository;
 
 @Service
 public class ProductService {
@@ -48,10 +48,9 @@ public class ProductService {
     private BasketRepository basketRepository;
     
     @Autowired
-    private AuthorRepository authorRepository;
+    private UserRepository userRepository;
     
-    @Autowired
-    private PersonRepository personRepository;
+    
     
     
     
@@ -248,26 +247,172 @@ public class ProductService {
 //    }
     
     //12
-    public List<BasketProductDTO> getBasketProductsByUserId(Long userId) {
-        List<Basket> baskets = basketRepository.findByUserId(userId);
-        List<BasketProductDTO> basketProductDTOs = new ArrayList<>();
+//    public List<BasketProductDTO> getBasketProductsByUserId(Long userId) {
+//        List<Basket> baskets = basketRepository.findByUserId(userId);
+//        List<BasketProductDTO> basketProductDTOs = new ArrayList<>();
+//
+//        for (Basket basket : baskets) {
+//            Product product = basket.getProduct();
+//            BasketProductDTO basketProductDTO = new BasketProductDTO(
+//               
+//                product.getName(),
+//                product.getBrand().getName(),
+//                product.getCategory().getName(),
+//                basket.getQuantity(), 
+//                basket.getPrice()
+//            		);
+//            basketProductDTOs.add(basketProductDTO);
+//        }
+//
+//        return basketProductDTOs;
+//    }
+    
+    //13 to list the products which belongs to the user
+    public UserDTO getUserDetails(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            return null; 
+        }
+        
+        
+
+        List<Basket> baskets = basketRepository.findByUser(user);
+        List<ProductDTO> products = new ArrayList<>();
+        Double totalBasketPrice = 0.0; 
+        Double totalMrpPrice=0.0;
+        
 
         for (Basket basket : baskets) {
             Product product = basket.getProduct();
-            BasketProductDTO basketProductDTO = new BasketProductDTO(
-               
-                product.getName(),
-                product.getBrand().getName(),
-                product.getCategory().getName(),
-                basket.getQuantity(), 
-                basket.getPrice()
-            		);
-            basketProductDTOs.add(basketProductDTO);
+            ProductDTO productDTO = new ProductDTO(product);
+            
+            Audit audit = product.getAudit();
+            productDTO.setCreatedTimestamp(audit.getCreatedTimestamp());
+            productDTO.setUpdatedBy(audit.getUpdatedBy());
+            productDTO.setUpdatedTimestamp(audit.getUpdatedTimestamp());
+            
+
+            
+            Double mrpPrice = inventoryRepository.findMaxPriceByProductId(product.getProductId());
+            productDTO.setMrpPrice(mrpPrice);
+            productDTO.setListPrice(basket.getPrice());
+
+            productDTO.setQuantity(basket.getQuantity());
+            productDTO.setBasketId(basket.getBasketId());
+            Long maxInventoryBatchId = inventoryRepository.findBatchIdForMaxPrice(product.getProductId(), mrpPrice);
+            productDTO.setBatchId(maxInventoryBatchId);
+            Double discount=mrpPrice-basket.getPrice();
+            productDTO.setDiscount(discount);
+           
+            products.add(productDTO);
+            totalBasketPrice += basket.getPrice();
+            totalMrpPrice+=mrpPrice;
+            
         }
 
-        return basketProductDTOs;
+        UserDTO userDTO = new UserDTO(user);
+        userDTO.setProducts(products);
+        userDTO.setTotalBasketPrice(totalBasketPrice);
+        userDTO.setTotalMrpPrice(totalMrpPrice);
+        Double totalDiscountPrice=totalMrpPrice-totalBasketPrice;
+        userDTO.setTotalDiscountPrice(totalDiscountPrice);
+        Long TotalProducts=(long)products.size();
+        userDTO.setTotalProducts(TotalProducts);
+        
+
+        return userDTO;
     }
     
+    //14 To delete the user by id
+    public void deleteUserById(long userId) {
+        userRepository.deleteById(userId);
+    }
+    
+    //15 to add a new user
+    public User addUser(User user) {
+       
+        return userRepository.save(user);
+    }
+    
+    //16 to fetch the all the user deatils
+    public List<User> getAllUsers(){
+    	return userRepository.findAllUsers();
+    	
+    }
+    
+    //17 TO modify the user deatils
+    
+    public User getUserById(long userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+    public User updateUser(long userId, User updatedUser) {
+        User existingUser = getUserById(userId);
+
+        if (existingUser != null) {
+            existingUser.setUserName(updatedUser.getUserName());
+            existingUser.setEmail(updatedUser.getEmail());
+            existingUser.setPhoneNum(updatedUser.getPhoneNum());
+
+            return userRepository.save(existingUser);
+        
+            
+            
+        }
+		return existingUser;
+    }
+    
+    
+    //18 adding an item to the basket
+    public Basket addItemToBasket(BasketRequestDTO basketRequest) {
+        Long userId = basketRequest.getUserId();
+        Long productId = basketRequest.getProductId();
+        int quantity = basketRequest.getQuantity();
+        double price = basketRequest.getPrice();
+
+        User user = userRepository.findById(userId).orElse(null);
+        Product product = productRepository.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            
+            return null;
+        }
+
+        Basket basketItem = new Basket();
+        basketItem.setUser(user);
+        basketItem.setProduct(product);
+        basketItem.setQuantity(quantity);
+        basketItem.setPrice(price);
+
+        basketRepository.save(basketItem);
+
+        return basketItem;
+    }
+    
+    //19 to remove the item from the basket
+    public void removeItemFromBasket(Long basketId) {
+        
+        Basket basket = basketRepository.findById(basketId).orElse(null);
+
+        if (basket != null) {
+            
+            basketRepository.delete(basket);
+        
+    }
+    }
+    
+    //20 to modify the quantity in the basket
+    public void modifyItemQuantity(Long basketId, int newQuantity) {
+        
+        Basket basket = basketRepository.findById(basketId).orElse(null);
+
+        if (basket != null) {
+           
+            basket.setQuantity(newQuantity);
+            basketRepository.save(basket);
+        
+    }
+
     
     
     
@@ -289,106 +434,18 @@ public class ProductService {
 
     
     
-//    public Product addProduct(Product product) {
-//        //Create a new Product instance from the Product
-//        Product newProduct = new Product();
-//        newProduct.setName(product.getName());
-//        newProduct.setPrice(product.getPrice());
-//        newProduct.setColor(product.getColor());
-//        newProduct.setSize(product.getSize());
-//        
-//
-//        
-//        newProduct.setDiscontinued(product.getDiscontinued());
-//        newProduct.setVisible(product.isVisible());
-//
-//        // Try to find the Brand in the repository
-//        Brand brand = brandRepository.findByName(product.getBrand().getName());
-//
-//        if (brand == null) {
-//            // Create a new Brand if it doesn't exist
-//            brand = new Brand();
-//            brand.setName(product.getBrand().getName());
-//            brand = brandRepository.save(brand);
-//        }
-//
-//        
-//        Category category = categoryRepository.findByName(product.getCategory().getName());
-//
-//        if (category == null) {
-//            
-//            category = new Category();
-//            category.setName(product.getCategory().getName());
-//            category = categoryRepository.save(category);
-//        }
-//
-//        
-//        newProduct.setBrand(brand);
-//        newProduct.setCategory(category);
-//
-//        
-//        return productRepository.save(newProduct);
-//    }
-//
 
-
-
+    
+   
     
     
 
-//    public Product createProduct(Product product) {
-//        
-//        Brand brand = brandRepository.findByName(product.getBrand().getName());
-//        
-//        if (brand == null) {
-//            
-//        	brand = new Brand();
-//            brand.setName(product.getBrand().getName());
-//            brand = brandRepository.save(brand);
-//        }
-//
-//        
-//        Category category = categoryRepository.findByName(product.getCategory().getName());
-//         if (category == null) {
-//            
-//            category = new Category();
-//            category.setName(product.getCategory().getName());
-//            category = categoryRepository.save(category);
-//        }
-//
-//        
-//        Product newProduct = new Product();
-//        newProduct.setName(product.getName());
-//        newProduct.setPrice(product.getPrice());
-//        newProduct.setColor(product.getColor());
-//        newProduct.setSize(product.getSize());
-//        newProduct.setBrand(brand);
-//        newProduct.setCategory(category);
-//
-//        
-//        return productRepository.save(newProduct);
-//    }
+
     
-    public Author getAuthorWithBooks(Long authorId) {
-        Author author = authorRepository.findById(authorId).orElse(null);
-
-        if (author != null) {
-            
-            author.getBooks().size(); 
-        }
-
-        return author;
     }
-    
-    public Person getPersonById(Long personId) {
-        return personRepository.findById(personId).orElse(null);
-    }
-    
-    
-
-
-    
 }
+
+
 
 
 

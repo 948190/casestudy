@@ -53,6 +53,10 @@ public class Product {
     @JsonIgnore
     private List<Inventory> inventory;
     
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "audit_id")
+    private Audit audit;
+    
     
     
     
@@ -144,6 +148,19 @@ public class Product {
 	public void setCategory(Category category) {
 		this.category = category;
 	}
+
+
+
+	public Audit getAudit() {
+		return audit;
+	}
+
+
+
+	public void setAudit(Audit audit) {
+		this.audit = audit;
+	}
+	
 
     
 }
