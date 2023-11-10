@@ -51,6 +51,155 @@ public class ProductService {
     private UserRepository userRepository;
     
     
+  //13 to list the products which belongs to the user
+    public UserDTO getUserDetails(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+
+        if (user == null) {
+            return null; 
+        }
+        
+        
+
+        List<Basket> baskets = basketRepository.findByUser(user);
+        List<ProductDTO> products = new ArrayList<>();
+        Double totalBasketPrice = 0.0; 
+        Double totalMrpPrice=0.0;
+        
+
+        for (Basket basket : baskets) {
+            Product product = basket.getProduct();
+            ProductDTO productDTO = new ProductDTO(product);
+            
+            Audit audit = product.getAudit();
+            productDTO.setCreatedTimestamp(audit.getCreatedTimestamp());
+            productDTO.setUpdatedBy(audit.getUpdatedBy());
+            productDTO.setUpdatedTimestamp(audit.getUpdatedTimestamp());
+            
+
+            
+            Double mrpPrice = inventoryRepository.findMaxPriceByProductId(product.getProductId());
+            productDTO.setMrpPrice(mrpPrice);
+            productDTO.setListPrice(basket.getPrice());
+
+            productDTO.setQuantity(basket.getQuantity());
+            productDTO.setBasketId(basket.getBasketId());
+            Long maxInventoryBatchId = inventoryRepository.findBatchIdForMaxPrice(product.getProductId(), mrpPrice);
+            productDTO.setBatchId(maxInventoryBatchId);
+            Double discount=mrpPrice-basket.getPrice();
+            productDTO.setDiscount(discount);
+           
+            products.add(productDTO);
+            totalBasketPrice += basket.getPrice();
+            totalMrpPrice+=mrpPrice;
+            
+        }
+
+        UserDTO userDTO = new UserDTO(user);
+        userDTO.setProducts(products);
+        userDTO.setTotalBasketPrice(totalBasketPrice);
+        userDTO.setTotalMrpPrice(totalMrpPrice);
+        Double totalDiscountPrice=totalMrpPrice-totalBasketPrice;
+        userDTO.setTotalDiscountPrice(totalDiscountPrice);
+        Long TotalProducts=(long)products.size();
+        userDTO.setTotalProducts(TotalProducts);
+        
+
+        return userDTO;
+    }
+    
+    //14 To delete the user by id
+    public void deleteUserById(long userId) {
+        userRepository.deleteById(userId);
+    }
+    
+    //15 to add a new user
+    public User addUser(User user) {
+       
+        return userRepository.save(user);
+    }
+    
+    //16 to fetch the all the user deatils
+    public List<User> getAllUsers(){
+    	return userRepository.findAllUsers();
+    	
+    }
+    
+    //17 TO modify the user deatils
+    
+    public User getUserById(long userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
+    public User updateUser(long userId, User updatedUser) {
+        User existingUser = getUserById(userId);
+
+        if (existingUser != null) {
+            existingUser.setUserName(updatedUser.getUserName());
+            existingUser.setEmail(updatedUser.getEmail());
+            existingUser.setPhoneNum(updatedUser.getPhoneNum());
+
+            return userRepository.save(existingUser);
+        
+            
+            
+        }
+		return existingUser;
+    }
+    
+    
+    //18 adding an item to the basket
+    public Basket addItemToBasket(BasketRequestDTO basketRequest) {
+        Long userId = basketRequest.getUserId();
+        Long productId = basketRequest.getProductId();
+        int quantity = basketRequest.getQuantity();
+        double price = basketRequest.getPrice();
+
+        User user = userRepository.findById(userId).orElse(null);
+        Product product = productRepository.findById(productId).orElse(null);
+
+        if (user == null || product == null) {
+            
+            return null;
+        }
+
+        Basket basketItem = new Basket();
+        basketItem.setUser(user);
+        basketItem.setProduct(product);
+        basketItem.setQuantity(quantity);
+        basketItem.setPrice(price);
+
+        basketRepository.save(basketItem);
+
+        return basketItem;
+    }
+    
+    //19 to remove the item from the basket
+    public void removeItemFromBasket(Long basketId) {
+        
+        Basket basket = basketRepository.findById(basketId).orElse(null);
+
+        if (basket != null) {
+            
+            basketRepository.delete(basket);
+        
+    }
+    }
+    
+    //20 to modify the quantity in the basket
+    public void modifyItemQuantity(Long basketId, int newQuantity) {
+        
+        Basket basket = basketRepository.findById(basketId).orElse(null);
+
+        if (basket != null) {
+           
+            basket.setQuantity(newQuantity);
+            basketRepository.save(basket);
+        
+    }
+    }
+
+    
+    
     
     
     
@@ -267,158 +416,7 @@ public class ProductService {
 //        return basketProductDTOs;
 //    }
     
-    //13 to list the products which belongs to the user
-    public UserDTO getUserDetails(Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null) {
-            return null; 
-        }
-        
-        
-
-        List<Basket> baskets = basketRepository.findByUser(user);
-        List<ProductDTO> products = new ArrayList<>();
-        Double totalBasketPrice = 0.0; 
-        Double totalMrpPrice=0.0;
-        
-
-        for (Basket basket : baskets) {
-            Product product = basket.getProduct();
-            ProductDTO productDTO = new ProductDTO(product);
-            
-            Audit audit = product.getAudit();
-            productDTO.setCreatedTimestamp(audit.getCreatedTimestamp());
-            productDTO.setUpdatedBy(audit.getUpdatedBy());
-            productDTO.setUpdatedTimestamp(audit.getUpdatedTimestamp());
-            
-
-            
-            Double mrpPrice = inventoryRepository.findMaxPriceByProductId(product.getProductId());
-            productDTO.setMrpPrice(mrpPrice);
-            productDTO.setListPrice(basket.getPrice());
-
-            productDTO.setQuantity(basket.getQuantity());
-            productDTO.setBasketId(basket.getBasketId());
-            Long maxInventoryBatchId = inventoryRepository.findBatchIdForMaxPrice(product.getProductId(), mrpPrice);
-            productDTO.setBatchId(maxInventoryBatchId);
-            Double discount=mrpPrice-basket.getPrice();
-            productDTO.setDiscount(discount);
-           
-            products.add(productDTO);
-            totalBasketPrice += basket.getPrice();
-            totalMrpPrice+=mrpPrice;
-            
-        }
-
-        UserDTO userDTO = new UserDTO(user);
-        userDTO.setProducts(products);
-        userDTO.setTotalBasketPrice(totalBasketPrice);
-        userDTO.setTotalMrpPrice(totalMrpPrice);
-        Double totalDiscountPrice=totalMrpPrice-totalBasketPrice;
-        userDTO.setTotalDiscountPrice(totalDiscountPrice);
-        Long TotalProducts=(long)products.size();
-        userDTO.setTotalProducts(TotalProducts);
-        
-
-        return userDTO;
-    }
     
-    //14 To delete the user by id
-    public void deleteUserById(long userId) {
-        userRepository.deleteById(userId);
-    }
-    
-    //15 to add a new user
-    public User addUser(User user) {
-       
-        return userRepository.save(user);
-    }
-    
-    //16 to fetch the all the user deatils
-    public List<User> getAllUsers(){
-    	return userRepository.findAllUsers();
-    	
-    }
-    
-    //17 TO modify the user deatils
-    
-    public User getUserById(long userId) {
-        return userRepository.findById(userId).orElse(null);
-    }
-    public User updateUser(long userId, User updatedUser) {
-        User existingUser = getUserById(userId);
-
-        if (existingUser != null) {
-            existingUser.setUserName(updatedUser.getUserName());
-            existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setPhoneNum(updatedUser.getPhoneNum());
-
-            return userRepository.save(existingUser);
-        
-            
-            
-        }
-		return existingUser;
-    }
-    
-    
-    //18 adding an item to the basket
-    public Basket addItemToBasket(BasketRequestDTO basketRequest) {
-        Long userId = basketRequest.getUserId();
-        Long productId = basketRequest.getProductId();
-        int quantity = basketRequest.getQuantity();
-        double price = basketRequest.getPrice();
-
-        User user = userRepository.findById(userId).orElse(null);
-        Product product = productRepository.findById(productId).orElse(null);
-
-        if (user == null || product == null) {
-            
-            return null;
-        }
-
-        Basket basketItem = new Basket();
-        basketItem.setUser(user);
-        basketItem.setProduct(product);
-        basketItem.setQuantity(quantity);
-        basketItem.setPrice(price);
-
-        basketRepository.save(basketItem);
-
-        return basketItem;
-    }
-    
-    //19 to remove the item from the basket
-    public void removeItemFromBasket(Long basketId) {
-        
-        Basket basket = basketRepository.findById(basketId).orElse(null);
-
-        if (basket != null) {
-            
-            basketRepository.delete(basket);
-        
-    }
-    }
-    
-    //20 to modify the quantity in the basket
-    public void modifyItemQuantity(Long basketId, int newQuantity) {
-        
-        Basket basket = basketRepository.findById(basketId).orElse(null);
-
-        if (basket != null) {
-           
-            basket.setQuantity(newQuantity);
-            basketRepository.save(basket);
-        
-    }
-
-    
-    
-    
-                
-   
-
 
 
 
@@ -442,7 +440,7 @@ public class ProductService {
 
 
     
-    }
+    
 }
 
 

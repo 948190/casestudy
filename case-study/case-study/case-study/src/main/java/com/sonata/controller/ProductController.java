@@ -32,6 +32,70 @@ public class ProductController {
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
+    
+    //13 list of the  product details that belongs to the user
+    @GetMapping("user/{userId}")
+    public ResponseEntity<UserDTO> getUserDetails(@PathVariable Long userId) {
+        UserDTO userDTO = productService.getUserDetails(userId);
+
+        
+
+        return new ResponseEntity<>(userDTO, HttpStatus.OK);
+    }
+  //14 To delete the user by id
+    @DeleteMapping("/deleteusers/{userId}")
+    public void deleteUserById(@PathVariable long userId) {
+        productService.deleteUserById(userId);
+    }
+    
+    //15 To add a new User
+    @PostMapping("/users")
+    public User addUser(@RequestBody User user) {
+        return productService.addUser(user);
+    }
+    
+    //16 To get All the users
+    @GetMapping("/users")
+    public List<User> getAllUsers() {
+        return productService.getAllUsers();
+    }
+
+
+    
+    //17 To update the user details
+	@PutMapping("/users/{userId}")
+	public User updateUser(@PathVariable long userId, @RequestBody User updatedUser) {
+		
+	
+    User updatedUser1 = productService.updateUser(userId, updatedUser);
+
+    if (updatedUser1 != null) {
+        return updatedUser1;
+    }
+	return updatedUser1;
+    }
+
+
+	//18 adding items to the basket
+	
+	@PostMapping("/add")
+	public Basket addItemToBasket(@RequestBody BasketRequestDTO basketRequest) {
+	    return productService.addItemToBasket(basketRequest);
+	}
+	//19 to remove item from the basket
+	@DeleteMapping("/removeitem/{basketId}")
+    public void removeItemFromBasket(@PathVariable Long basketId) {
+        productService.removeItemFromBasket(basketId);
+    }
+	
+	//20 to modify the quantity in the basket
+	@PutMapping("modifyquantity/{basketId}")
+    public void modifyItemQuantity(
+            @PathVariable Long basketId,
+            @RequestParam int newQuantity
+    ) {
+        productService.modifyItemQuantity(basketId, newQuantity);
+    }
 
     
     
@@ -142,70 +206,7 @@ public class ProductController {
 //        return new ResponseEntity<>(basketProducts, HttpStatus.OK);
 //    }
 //    
-    //13
-    @GetMapping("user/{userId}")
-    public ResponseEntity<UserDTO> getUserDetails(@PathVariable Long userId) {
-        UserDTO userDTO = productService.getUserDetails(userId);
-
-        
-
-        return new ResponseEntity<>(userDTO, HttpStatus.OK);
-    }
-  //14 To delete the user by id
-    @DeleteMapping("/deleteusers/{userId}")
-    public void deleteUserById(@PathVariable long userId) {
-        productService.deleteUserById(userId);
-    }
     
-    //15 To add a new User
-    @PostMapping("/users")
-    public User addUser(@RequestBody User user) {
-        return productService.addUser(user);
-    }
-    
-    //16 To get All the users
-    @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return productService.getAllUsers();
-    }
-
-
-    
-    //17 To update the user details
-	@PutMapping("/users/{userId}")
-	public User updateUser(@PathVariable long userId, @RequestBody User updatedUser) {
-		
-	
-    User updatedUser1 = productService.updateUser(userId, updatedUser);
-
-    if (updatedUser1 != null) {
-        return updatedUser1;
-    }
-	return updatedUser1;
-    }
-
-
-	//18 adding items to the basket
-	
-	@PostMapping("/add")
-	public Basket addItemToBasket(@RequestBody BasketRequestDTO basketRequest) {
-	    return productService.addItemToBasket(basketRequest);
-	}
-	//19 to remove item from the basket
-	@DeleteMapping("/removeitem/{basketId}")
-    public void removeItemFromBasket(@PathVariable Long basketId) {
-        productService.removeItemFromBasket(basketId);
-    }
-	
-	//20 to modify the quantity in the basket
-	@PutMapping("modifyquantity/{basketId}")
-    public void modifyItemQuantity(
-            @PathVariable Long basketId,
-            @RequestParam int newQuantity
-    ) {
-        productService.modifyItemQuantity(basketId, newQuantity);
-    }
-	
 }
 
 
@@ -213,21 +214,7 @@ public class ProductController {
     
     
     
-//    @PostMapping("/products")
-//    public Product addProduct(@RequestBody Product product) {
-//        return productService.addProduct(product);
-//    }
 
-//    @PostMapping("/create")
-//    public ResponseEntity<String> createProduct(@RequestBody Product productDTO) {
-//        try {
-//            Product createdProduct = productService.createProduct(productDTO);
-//            return new ResponseEntity<>("Product created successfully with ID: " + createdProduct.getProductId(), HttpStatus.CREATED);
-//        } catch (Exception e) {
-//            
-//            return new ResponseEntity<>("Failed to create the product: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-//        }
-//    }
     
     
     
